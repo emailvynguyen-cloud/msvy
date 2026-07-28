@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Student, Class, Invoice, BankConfig, Session, User } from '../../types';
 import { MonthlyRevenueWidget } from './MonthlyRevenueWidget';
+import { HomeworkGradingWidget } from './HomeworkGradingWidget';
 import { WeeklyTimetable } from '../common/WeeklyTimetable';
 import { StorageEngine } from '../../lib/storage';
 import { formatVND } from '../../lib/vietqr';
@@ -18,6 +19,10 @@ import {
   ExternalLink,
   ShieldAlert,
   Crown,
+  Search,
+  MessageSquare,
+  UserCheck,
+  Calendar,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -32,6 +37,7 @@ interface AdminDashboardProps {
   onUpdateInvoices: () => void;
   onOpenPublicLink: (hash: string) => void;
   onOpenAddSession: (classId?: string) => void;
+  onOpenAccountManagement: () => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -46,10 +52,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdateInvoices,
   onOpenPublicLink,
   onOpenAddSession,
+  onOpenAccountManagement,
 }) => {
   const isSuperAdmin = currentUser?.role === 'super_admin';
 
-  const [activeTab, setActiveTab] = useState<'timetable' | 'revenue' | 'classes' | 'students' | 'invoices'>('timetable');
+  const [activeTab, setActiveTab] = useState<'timetable' | 'grading' | 'teachers' | 'revenue' | 'classes' | 'students' | 'invoices'>('timetable');
+
+  // Search Queries
+  const [classSearchQuery, setClassSearchQuery] = useState('');
+  const [studentSearchQuery, setStudentSearchQuery] = useState('');
 
   // Form Modals State
   const [isAddClassOpen, setIsAddClassOpen] = useState(false);
@@ -62,8 +73,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newSchedule, setNewSchedule] = useState('T2 - T4 - T6 (18:00 - 19:30)');
   const [newCourseName, setNewCourseName] = useState('IELTS Breakthrough');
   const [newZoomLink, setNewZoomLink] = useState('');
-  const [classMaterialTitle, setClassMaterialTitle] = useState('');
-  const [classMaterialUrl, setClassMaterialUrl] = useState('');
 
   // New Student Form State
   const [newStudentName, setNewStudentName] = useState('');
@@ -73,10 +82,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newTuitionPrice, setNewTuitionPrice] = useState(2000000);
   const [newSessionCount, setNewSessionCount] = useState(8);
 
+  // Filtered Lists
+  const filteredClasses = classes.filter((c) =>
+    c.className.toLowerCase().includes(classSearchQuery.toLowerCase()) ||
+    c.code.toLowerCase().includes(classSearchQuery.toLowerCase()) ||
+    c.teacherName.toLowerCase().includes(classSearchQuery.toLowerCase())
+  );
+
+  const filteredStudents = students.filter((s) => s.status !== 'soft_deleted').filter((s) =>
+    s.name.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
+    s.phone.includes(studentSearchQuery) ||
+    s.email.toLowerCase().includes(studentSearchQuery.toLowerCase())
+  );
+
+  const teachersList = StorageEngine.getUsers().filter((u) => u.role === 'teacher' || u.role === 'super_admin');
+
   const handleCreateClass = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isSuperAdmin) {
-      alert('Chỉ có Super Admin (Người điều hành cao nhất) mới có quyền tạo lớp!');
+      alert('Chỉ có Super Admin mới có quyền tạo lớp!');
       return;
     }
 
@@ -91,9 +115,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       room: 'Phòng Online / Zoom Premium',
       courseName: newCourseName,
       zoomLink: newZoomLink,
-      resourceLinks: classMaterialTitle && classMaterialUrl ? [
-        { id: `res_${Date.now()}`, title: classMaterialTitle, url: classMaterialUrl }
-      ] : [],
+      resourceLinks: [],
     });
 
     alert('Đã tạo lớp học thành công!');
@@ -140,8 +162,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {isSuperAdmin ? <Crown className="w-5 h-5" /> : <ShieldAlert className="w-5 h-5" />}
           <span>
             {isSuperAdmin
-              ? 'Bạn đang truy cập với quyền SUPER ADMIN (Người điều hành cao nhất): Toàn quyền quản lý lớp, gán GV, học phí & doanh thu tháng.'
-              : 'Bạn đang truy cập với quyền QUẢN TRỊ VIÊN (Admin): Theo dõi lớp/học viên (không sửa), có quyền Thêm Buổi Học.'}
+              ? 'Bạn đang ở phân hệ SUPER ADMIN (Điều Hành Cao Nhất): Toàn quyền quản lý lớp, giáo viên, học viên, học phí & xem Doanh thu tháng.'
+              : 'Bạn đang ở phân hệ QUẢN TRỊ VIÊN (Admin): Theo dõi lớp/học viên, Thêm buổi học & Chấm bài tập về nhà.'}
           </span>
         </div>
       </div>
@@ -158,6 +180,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           Thời Khóa Biểu Tuần
         </button>
+
+        <button
+          onClick={() => setActiveTab('grading')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition shrink-0 flex items-center ${
+            activeTab === 'grading'
+              ? 'bg-pink-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-pink-50'
+          }`}
+        >
+          <MessageSquare className="w-3.5 h-3.5 mr-1" /> Chấm Bài Tập Về Nhà
+        </button>
+
+        {isSuperAdmin && (
+          <button
+            onClick={() => setActiveTab('teachers')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition shrink-0 flex items-center ${
+              activeTab === 'teachers'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-indigo-50'
+            }`}
+          >
+            <UserCheck className="w-3.5 h-3.5 mr-1" /> Quản Lý Giáo Viên
+          </button>
+        )}
 
         {isSuperAdmin && (
           <button
@@ -218,30 +264,105 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         />
       )}
 
-      {/* TAB 2: MONTHLY REVENUE (Super Admin Only) */}
+      {/* TAB 2: HOMEWORK GRADING QUEUE (Admin & Super Admin) */}
+      {activeTab === 'grading' && (
+        <HomeworkGradingWidget
+          students={students}
+          onRefreshData={onUpdateStudents}
+        />
+      )}
+
+      {/* TAB 3: TEACHERS MANAGEMENT (Super Admin Only) */}
+      {activeTab === 'teachers' && isSuperAdmin && (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-purple-100 dark:border-purple-800 shadow-sm p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center">
+                <UserCheck className="w-5 h-5 mr-2 text-indigo-600" /> Quản Lý Đội Ngũ Giáo Viên & Lịch Dạy
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Tạo tài khoản giáo viên mới, gán lớp phụ trách và theo dõi tiến độ thời khóa biểu
+              </p>
+            </div>
+
+            <button
+              onClick={onOpenAccountManagement}
+              className="px-4 py-2.5 rounded-2xl bg-indigo-600 text-white font-extrabold text-xs hover:bg-indigo-700 transition shadow-sm flex items-center"
+            >
+              + Cấp Tài Khoản Giáo Viên Mới
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {teachersList.map((t) => {
+              const assignedClasses = classes.filter((c) => c.teacherName === t.displayName || c.teacherId === t.uid);
+
+              return (
+                <div key={t.uid} className="p-5 rounded-3xl border border-indigo-100 bg-indigo-50/40 space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <img src={t.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'} alt={t.displayName} className="w-12 h-12 rounded-2xl object-cover border border-indigo-200" />
+                    <div>
+                      <h4 className="font-black text-sm text-slate-900 dark:text-white">{t.displayName}</h4>
+                      <p className="text-xs text-slate-500 font-mono">Email: {t.email} • SĐT: {t.phoneNumber || '0912345678'}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-indigo-100 text-xs text-slate-600 space-y-1">
+                    <span className="font-extrabold text-indigo-900 uppercase block">Lớp Được Phụ Trách ({assignedClasses.length} lớp):</span>
+                    {assignedClasses.length > 0 ? (
+                      assignedClasses.map((cls) => (
+                        <p key={cls.id} className="font-medium flex items-center">
+                          • {cls.className} ({cls.schedule})
+                        </p>
+                      ))
+                    ) : (
+                      <p className="italic text-slate-400">Chưa được gán lớp nào</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: MONTHLY REVENUE (Super Admin Only) */}
       {activeTab === 'revenue' && isSuperAdmin && (
         <MonthlyRevenueWidget />
       )}
 
-      {/* TAB 3: CLASSES LIST */}
+      {/* TAB 5: CLASSES LIST (With Search Bar) */}
       {activeTab === 'classes' && (
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-purple-100 dark:border-purple-800 shadow-sm p-6 space-y-4">
-          <div className="flex items-center justify-between">
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center">
-              <BookOpen className="w-5 h-5 mr-2 text-purple-600" /> Quản Lý Lớp Học
+              <BookOpen className="w-5 h-5 mr-2 text-purple-600" /> Quản Lý Tất Cả Lớp Học
             </h3>
+
+            {/* SEARCH BAR FOR CLASSES */}
+            <div className="relative w-full sm:w-72">
+              <Search className="w-4 h-4 text-purple-400 absolute left-3.5 top-3" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm lớp học, mã lớp, giáo viên..."
+                value={classSearchQuery}
+                onChange={(e) => setClassSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-2xl border border-purple-200 text-xs font-medium bg-purple-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              />
+            </div>
 
             {isSuperAdmin && (
               <button
                 onClick={() => setIsAddClassOpen(!isAddClassOpen)}
-                className="px-4 py-2 rounded-2xl bg-purple-600 text-white font-extrabold text-xs hover:bg-purple-700 transition shadow-sm flex items-center"
+                className="px-4 py-2.5 rounded-2xl bg-purple-600 text-white font-extrabold text-xs hover:bg-purple-700 transition shadow-sm flex items-center shrink-0"
               >
                 <Plus className="w-4 h-4 mr-1" /> Tạo Lớp Mới
               </button>
             )}
           </div>
 
-          {/* Add Class Form (Super Admin Only) */}
+          {/* Add Class Form */}
           {isAddClassOpen && isSuperAdmin && (
             <form onSubmit={handleCreateClass} className="p-4 rounded-3xl bg-purple-50/80 border border-purple-200 space-y-3 animate-fadeIn text-xs">
               <h4 className="font-black text-purple-900 uppercase">Tạo Lớp Học Mới</h4>
@@ -292,23 +413,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <input
-                  type="text"
-                  placeholder="Tiêu đề tài liệu học tập (Nếu có)"
-                  value={classMaterialTitle}
-                  onChange={(e) => setClassMaterialTitle(e.target.value)}
-                  className="p-2.5 rounded-xl border border-purple-200 bg-white"
-                />
-                <input
-                  type="url"
-                  placeholder="Đường link tài liệu lớp (Google Drive/PDF...)"
-                  value={classMaterialUrl}
-                  onChange={(e) => setClassMaterialUrl(e.target.value)}
-                  className="p-2.5 rounded-xl border border-purple-200 bg-white font-mono"
-                />
-              </div>
-
               <div className="flex justify-end space-x-2 pt-2">
                 <button
                   type="button"
@@ -329,7 +433,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Classes Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {classes.map((cls) => (
+            {filteredClasses.map((cls) => (
               <div key={cls.id} className="p-5 rounded-3xl border border-purple-100 bg-purple-50/40 space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
@@ -363,18 +467,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* TAB 4: STUDENTS LIST */}
+      {/* TAB 6: STUDENTS LIST (With Search Bar) */}
       {activeTab === 'students' && (
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-purple-100 dark:border-purple-800 shadow-sm p-6 space-y-4">
-          <div className="flex items-center justify-between">
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center">
               <Users className="w-5 h-5 mr-2 text-purple-600" /> Quản Lý Danh Sách Học Viên
             </h3>
 
+            {/* SEARCH BAR FOR STUDENTS */}
+            <div className="relative w-full sm:w-72">
+              <Search className="w-4 h-4 text-purple-400 absolute left-3.5 top-3" />
+              <input
+                type="text"
+                placeholder="Tìm tên học viên, SĐT, email..."
+                value={studentSearchQuery}
+                onChange={(e) => setStudentSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-2xl border border-purple-200 text-xs font-medium bg-purple-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              />
+            </div>
+
             {isSuperAdmin && (
               <button
                 onClick={() => setIsAddStudentOpen(!isAddStudentOpen)}
-                className="px-4 py-2 rounded-2xl bg-purple-600 text-white font-extrabold text-xs hover:bg-purple-700 transition shadow-sm flex items-center"
+                className="px-4 py-2.5 rounded-2xl bg-purple-600 text-white font-extrabold text-xs hover:bg-purple-700 transition shadow-sm flex items-center shrink-0"
               >
                 <Plus className="w-4 h-4 mr-1" /> Thêm Học Viên Vào Lớp
               </button>
@@ -456,7 +573,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Students List */}
           <div className="space-y-3">
-            {students.filter(s => s.status !== 'soft_deleted').map((std) => (
+            {filteredStudents.map((std) => (
               <div key={std.id} className="p-4 rounded-2xl border border-purple-100 bg-purple-50/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center space-x-3">
                   <img src={std.avatar} alt={std.name} className="w-12 h-12 rounded-2xl object-cover border border-purple-200" />
@@ -480,7 +597,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* TAB 5: INVOICES (Super Admin Only) */}
+      {/* TAB 7: INVOICES */}
       {activeTab === 'invoices' && isSuperAdmin && (
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-purple-100 dark:border-purple-800 shadow-sm p-6 space-y-4">
           <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center">
