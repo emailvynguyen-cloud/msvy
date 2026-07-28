@@ -24,7 +24,7 @@ import {
 import confetti from 'canvas-confetti';
 
 interface StudentPortalProps {
-  currentStudent: Student;
+  currentStudent?: Student;
   classes: Class[];
   sessions: Session[];
   homeworkTasks: HomeworkTask[];
@@ -45,6 +45,14 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
   onRefreshData,
 }) => {
   const [copiedCode, setCopiedCode] = useState(false);
+
+  if (!currentStudent) {
+    return (
+      <div className="p-8 text-center bg-white rounded-3xl border border-purple-100 text-xs text-slate-500 font-bold max-w-md mx-auto my-12 shadow-sm space-y-4">
+        <p>Hệ thống đang sẵn sàng. Vui lòng đăng nhập tài khoản hoặc dùng đường link cá nhân.</p>
+      </div>
+    );
+  }
 
   // Student's classes
   const studentClasses = classes.filter((c) => currentStudent.classIds.includes(c.id));
