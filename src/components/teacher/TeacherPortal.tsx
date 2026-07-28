@@ -13,6 +13,8 @@ import {
   Sparkles,
   ChevronRight,
   Flame,
+  X,
+  User,
 } from 'lucide-react';
 
 interface TeacherPortalProps {
@@ -32,16 +34,15 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'today' | 'schedule' | 'all_classes'>('today');
   const [scheduleView, setScheduleView] = useState<'week' | 'month'>('week');
-  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
 
-  // Today's classes
-  const todayClasses = classes; // All assigned classes for demo
-  const currentOngoingClass = todayClasses[0]; // Active class starting now
+  const todayClasses = classes;
+  const currentOngoingClass = todayClasses[0];
 
   return (
     <div className="space-y-6">
       
-      {/* Teacher Portal 3 Main Tabs Header */}
+      {/* Teacher Portal Navigation Tabs (Clean Headers without "Mục 1, 2, 3") */}
       <div className="flex items-center space-x-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-purple-100 dark:border-purple-800 shadow-sm overflow-x-auto">
         <button
           onClick={() => setActiveTab('today')}
@@ -52,7 +53,7 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
           }`}
         >
           <Flame className="w-4 h-4 text-amber-300 animate-pulse" />
-          <span>MỤC 1: HÔM NAY</span>
+          <span>HÔM NAY</span>
         </button>
 
         <button
@@ -64,7 +65,7 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
           }`}
         >
           <Calendar className="w-4 h-4" />
-          <span>MỤC 2: LỊCH DẠY</span>
+          <span>LỊCH DẠY</span>
         </button>
 
         <button
@@ -76,17 +77,15 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
           }`}
         >
           <BookOpen className="w-4 h-4" />
-          <span>MỤC 3: TẤT CẢ LỚP HỌC</span>
+          <span>TẤT CẢ LỚP HỌC ({classes.length})</span>
         </button>
       </div>
 
-      {/* MỤC 1: HÔM NAY */}
+      {/* TAB 1: HÔM NAY */}
       {activeTab === 'today' && (
         <div className="space-y-6">
-          
-          {/* Lớp Hiện Tại Dang Bắt Đầu Banner Top Box */}
           {currentOngoingClass && (
-            <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-500 text-white p-6 rounded-3xl shadow-xl relative overflow-hidden space-y-4">
+            <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-500 text-white p-6 sm:p-8 rounded-3xl shadow-xl relative overflow-hidden space-y-4">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 relative z-10">
                 <div className="flex items-center space-x-4">
                   <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white shrink-0">
@@ -96,7 +95,10 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
                     <span className="px-3 py-1 rounded-full text-[10px] font-black bg-pink-400 text-white uppercase tracking-wider shadow-sm">
                       🔴 LỚP HỌC HIỆN TẠI ĐANG BẮT ĐẦU
                     </span>
-                    <h3 className="text-xl font-black mt-1">
+                    <h3
+                      onClick={() => setSelectedClass(currentOngoingClass)}
+                      className="text-xl font-black mt-1 hover:underline cursor-pointer"
+                    >
                       {currentOngoingClass.className}
                     </h3>
                     <p className="text-xs text-purple-100 mt-0.5 font-medium">
@@ -105,7 +107,6 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
                   </div>
                 </div>
 
-                {/* Direct Zoom Link Button */}
                 {currentOngoingClass.zoomLink ? (
                   <a
                     href={currentOngoingClass.zoomLink}
@@ -135,7 +136,7 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
                   <Clock className="w-5 h-5 mr-2 text-purple-600" /> Danh Sách Lớp Dạy Hôm Nay
                 </h3>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  Kiểm tra lịch dạy hôm nay và truy cập vào lớp giảng dạy
+                  Bấm vào từng lớp để xem thông tin lớp và danh sách học viên
                 </p>
               </div>
 
@@ -154,23 +155,24 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
                 return (
                   <div
                     key={cls.id}
-                    className="p-5 rounded-3xl border border-purple-100 dark:border-purple-800 bg-purple-50/40 dark:bg-purple-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-purple-300 transition"
+                    onClick={() => setSelectedClass(cls)}
+                    className="p-5 rounded-3xl border border-purple-100 bg-purple-50/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-purple-300 transition cursor-pointer group"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-black text-sm text-slate-900 dark:text-white">
+                        <span className="font-black text-sm text-slate-900 dark:text-white group-hover:text-purple-600 transition underline decoration-purple-300">
                           {cls.className}
                         </span>
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-800 uppercase">
                           {cls.code}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-purple-300 font-medium">
+                      <p className="text-xs text-slate-600 font-medium">
                         Lịch: {cls.schedule} • Sĩ số: {classStudents.length} học viên
                       </p>
                     </div>
 
-                    <div className="flex items-center space-x-2 shrink-0">
+                    <div className="flex items-center space-x-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                       {cls.zoomLink && (
                         <a
                           href={cls.zoomLink}
@@ -198,12 +200,12 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
         </div>
       )}
 
-      {/* MỤC 2: LỊCH DẠY (Tuần & Tháng Toggle) */}
+      {/* TAB 2: LỊCH DẠY (Grid Table Format) */}
       {activeTab === 'schedule' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-3xl border border-purple-100 dark:border-purple-800 shadow-sm">
+          <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-3xl border border-purple-100 shadow-sm">
             <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center">
-              <Calendar className="w-5 h-5 mr-2 text-purple-600" /> Bảng Lịch Dạy Theo Tuần & Tháng
+              <Calendar className="w-5 h-5 mr-2 text-purple-600" /> Bảng Lịch Dạy Theo Kẻ Bảng Trực Quan
             </h3>
 
             <div className="bg-purple-50 p-1 rounded-2xl flex items-center space-x-1 border border-purple-200">
@@ -213,7 +215,7 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
                   scheduleView === 'week' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600'
                 }`}
               >
-                Xem Theo Tuần
+                Lịch Tuần
               </button>
               <button
                 onClick={() => setScheduleView('month')}
@@ -221,69 +223,54 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
                   scheduleView === 'month' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600'
                 }`}
               >
-                Xem Theo Tháng
+                Lịch Tháng
               </button>
             </div>
           </div>
 
-          {scheduleView === 'week' ? (
-            <WeeklyTimetable
-              classes={classes}
-              students={students}
-              sessions={sessions}
-              onOpenAddSession={onOpenAddSession}
-            />
-          ) : (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-purple-100 p-6 space-y-4">
-              <h4 className="font-extrabold text-sm text-purple-900">Lịch Dạy Chi Tiết Trong Tháng</h4>
-              <p className="text-xs text-slate-500">
-                Hiển thị danh sách toàn bộ các ca dạy trong tháng để giáo viên dễ dàng theo dõi.
-              </p>
-              <WeeklyTimetable
-                classes={classes}
-                students={students}
-                sessions={sessions}
-                onOpenAddSession={onOpenAddSession}
-              />
-            </div>
-          )}
+          <WeeklyTimetable
+            classes={classes}
+            students={students}
+            sessions={sessions}
+            onOpenAddSession={onOpenAddSession}
+          />
         </div>
       )}
 
-      {/* MỤC 3: TẤT CẢ LỚP HỌC */}
+      {/* TAB 3: TẤT CẢ LỚP HỌC (Clickable to inspect Class & Students) */}
       {activeTab === 'all_classes' && (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-purple-100 dark:border-purple-800 shadow-sm p-6 space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-purple-100 shadow-sm p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center">
                 <BookOpen className="w-5 h-5 mr-2 text-purple-600" /> Thống Kê Tất Cả Các Lớp Học Đang Phụ Trách
               </h3>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Nhấn vào từng lớp để xem danh sách học viên, lịch sử bài học và điểm danh
+                Nhấn vào từng lớp để xem danh sách học viên trực thuộc và tạo buổi học
               </p>
             </div>
 
             <button
               onClick={() => onOpenAddSession()}
-              className="px-4 py-2 rounded-2xl bg-purple-600 text-white font-extrabold text-xs hover:bg-purple-700 transition flex items-center shadow-sm"
+              className="px-4 py-2 rounded-2xl bg-purple-600 text-white font-extrabold text-xs hover:bg-purple-700 transition shadow-sm"
             >
-              <PlusCircle className="w-4 h-4 mr-1.5" /> Thêm Buổi Học
+              + Thêm Buổi Học
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {classes.map((cls) => {
               const classStudents = students.filter((s) => s.classIds.includes(cls.id));
-              const classSessions = sessions.filter((s) => s.classId === cls.id);
 
               return (
                 <div
                   key={cls.id}
-                  className="p-6 rounded-3xl border border-purple-100 bg-purple-50/40 dark:bg-purple-950/20 space-y-4 hover:border-purple-300 transition"
+                  onClick={() => setSelectedClass(cls)}
+                  className="p-6 rounded-3xl border border-purple-100 bg-purple-50/40 space-y-4 hover:border-purple-400 transition cursor-pointer group"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-black text-base text-slate-900 dark:text-white">
+                      <h4 className="font-black text-base text-slate-900 dark:text-white group-hover:text-purple-600 transition underline decoration-purple-300">
                         {cls.className}
                       </h4>
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-800 uppercase mt-1 inline-block">
@@ -300,26 +287,18 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
                     <p><strong>Lịch học:</strong> {cls.schedule}</p>
                     <p><strong>Phòng học:</strong> {cls.room}</p>
                     <p><strong>Giáo trình:</strong> {cls.courseName}</p>
-                    <p><strong>Đã dạy:</strong> {classSessions.length} buổi học</p>
                   </div>
 
-                  {/* Student Avatars Preview */}
-                  <div className="pt-2 border-t border-purple-100 flex items-center justify-between">
+                  <div className="pt-2 border-t border-purple-100 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
                     <div className="flex -space-x-2">
                       {classStudents.map((std) => (
-                        <img
-                          key={std.id}
-                          src={std.avatar}
-                          alt={std.name}
-                          title={std.name}
-                          className="w-8 h-8 rounded-full border-2 border-white object-cover"
-                        />
+                        <img key={std.id} src={std.avatar} alt={std.name} title={std.name} className="w-8 h-8 rounded-full border-2 border-white object-cover" />
                       ))}
                     </div>
 
                     <button
                       onClick={() => onOpenAddSession(cls.id)}
-                      className="px-4 py-2 rounded-xl bg-purple-600 text-white font-extrabold text-xs hover:bg-purple-700 transition flex items-center shadow-sm"
+                      className="px-4 py-2 rounded-xl bg-purple-600 text-white font-extrabold text-xs hover:bg-purple-700 transition shadow-sm"
                     >
                       + Thêm Buổi Học
                     </button>
@@ -327,6 +306,92 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* CLASS INSPECTION MODAL */}
+      {selectedClass && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-purple-950/60 backdrop-blur-md animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl border-2 border-purple-100 p-6 space-y-5 relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setSelectedClass(null)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-black">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                  {selectedClass.className}
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-800 uppercase">
+                  {selectedClass.code}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-purple-50 text-xs space-y-1.5 font-medium">
+              <p><strong>Giáo viên:</strong> {selectedClass.teacherName}</p>
+              <p><strong>Lịch học:</strong> {selectedClass.schedule}</p>
+              <p><strong>Giáo trình:</strong> {selectedClass.courseName}</p>
+              <p><strong>Phòng học:</strong> {selectedClass.room}</p>
+              {selectedClass.zoomLink && (
+                <p className="flex items-center text-indigo-600 font-bold">
+                  <Video className="w-4 h-4 mr-1" />
+                  Zoom: <a href={selectedClass.zoomLink} target="_blank" rel="noreferrer" className="underline ml-1 truncate">{selectedClass.zoomLink}</a>
+                </p>
+              )}
+            </div>
+
+            <div>
+              <h4 className="font-extrabold text-xs text-purple-900 uppercase mb-2">
+                Danh Sách Học Viên Trực Thuộc ({students.filter((s) => s.classIds.includes(selectedClass.id)).length} em):
+              </h4>
+              <div className="space-y-2">
+                {students
+                  .filter((s) => s.classIds.includes(selectedClass.id))
+                  .map((std) => (
+                    <div key={std.id} className="p-3 rounded-2xl border border-purple-100 bg-white flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <img src={std.avatar} alt={std.name} className="w-9 h-9 rounded-xl object-cover" />
+                        <div>
+                          <p className="font-extrabold text-xs text-slate-900">{std.name}</p>
+                          <span className="text-[10px] text-purple-600 font-bold">{std.honorNickname || 'Học viên active'}</span>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-pink-600 bg-pink-50 px-2.5 py-1 rounded-xl">
+                        SĐT: {std.phone}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            <div className="flex justify-between pt-2">
+              <button
+                onClick={() => {
+                  const targetId = selectedClass.id;
+                  setSelectedClass(null);
+                  onOpenAddSession(targetId);
+                }}
+                className="px-4 py-2.5 rounded-2xl bg-purple-600 text-white font-extrabold text-xs hover:bg-purple-700 transition"
+              >
+                + Thêm Buổi Học Cho Lớp Này
+              </button>
+
+              <button
+                onClick={() => setSelectedClass(null)}
+                className="px-5 py-2.5 rounded-2xl bg-slate-900 text-white font-extrabold text-xs"
+              >
+                Đóng Lại
+              </button>
+            </div>
+
           </div>
         </div>
       )}
