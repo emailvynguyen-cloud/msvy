@@ -11,7 +11,6 @@ import { AccountManagementModal } from './components/auth/AccountManagementModal
 import { LeaderboardWidget } from './components/common/LeaderboardWidget';
 import { AddSessionModal } from './components/common/AddSessionModal';
 import { GeminiSettingsModal } from './components/common/GeminiSettingsModal';
-import { Sparkles, Heart } from 'lucide-react';
 
 const INITIAL_BANK_CONFIG_FALLBACK: BankConfig = {
   bankId: 'MB',
@@ -34,16 +33,16 @@ export default function App() {
   const [isAddSessionOpen, setIsAddSessionOpen] = useState(false);
   const [addSessionClassId, setAddSessionClassId] = useState<string | undefined>(undefined);
 
-  // App State Data
-  const [students, setStudents] = useState<Student[]>([]);
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [homeworkTasks, setHomeworkTasks] = useState<HomeworkTask[]>([]);
-  const [homeworkSubmissions, setHomeworkSubmissions] = useState<HomeworkSubmission[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [bankConfig, setBankConfig] = useState<BankConfig>(INITIAL_BANK_CONFIG_FALLBACK);
+  // Synchronously initialize state from StorageEngine
+  const [students, setStudents] = useState<Student[]>(() => StorageEngine.getStudents());
+  const [classes, setClasses] = useState<Class[]>(() => StorageEngine.getClasses());
+  const [sessions, setSessions] = useState<Session[]>(() => StorageEngine.getSessions());
+  const [homeworkTasks, setHomeworkTasks] = useState<HomeworkTask[]>(() => StorageEngine.getHomeworkTasks());
+  const [homeworkSubmissions, setHomeworkSubmissions] = useState<HomeworkSubmission[]>(() => StorageEngine.getHomeworkSubmissions());
+  const [invoices, setInvoices] = useState<Invoice[]>(() => StorageEngine.getInvoices());
+  const [bankConfig, setBankConfig] = useState<BankConfig>(() => StorageEngine.getBankConfig() || INITIAL_BANK_CONFIG_FALLBACK);
 
-  // Load state from StorageEngine
+  // Refresh state function
   const loadData = () => {
     setStudents(StorageEngine.getStudents());
     setClasses(StorageEngine.getClasses());
