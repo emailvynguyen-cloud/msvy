@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Student, Session } from '../../types';
-import { Trophy, Star, Award, Sparkles, CheckCircle2, Flame, Medal, X } from 'lucide-react';
+import { Trophy, Star, Award, Sparkles, CheckCircle2, Flame, Medal, X, ArrowLeft } from 'lucide-react';
 
 interface LeaderboardWidgetProps {
   isOpen?: boolean;
@@ -17,20 +17,17 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
 }) => {
   const [timeFilter, setTimeFilter] = useState<'week' | 'month'>('week');
 
-  // Compute completion rate for each student
   const activeStudents = students.filter((s) => s.status !== 'soft_deleted');
 
   const rankedStudents = activeStudents.map((student) => {
-    // Total sessions assigned to student
     const studentSessions = sessions.filter((ses) =>
       ses.attendance.some((att) => att.studentId === student.id)
     );
 
     const totalCount = Math.max(1, studentSessions.length);
-    const completedCount = student.completedSessionHomeworkIds ? student.completedSessionHomeworkIds.length : 0;
+    const completedCount = student.completedHomeworkTaskIds ? student.completedHomeworkTaskIds.length : 0;
     const rate = Math.min(100, Math.round((completedCount / totalCount) * 100));
 
-    // Dynamic Honor Nicknames
     let nickname = student.honorNickname || '⭐ Ngôi Sao Tri Thức';
     if (rate >= 80) nickname = '👑 Chiến Thần Chăm Học';
     else if (rate >= 60) nickname = '⚡ Siêu Sao Bài Tập';
@@ -52,7 +49,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
       <div className="bg-gradient-to-r from-amber-400 via-pink-400 to-purple-500 text-white p-6 rounded-3xl shadow-xl relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
           <div className="flex items-center space-x-3 text-center sm:text-left">
-            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-inner">
+            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-inner shrink-0">
               <Trophy className="w-8 h-8 text-amber-100 animate-bounce" />
             </div>
             <div>
@@ -70,28 +67,40 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
             </div>
           </div>
 
-          {/* Time Filter Pill Selector */}
-          <div className="bg-black/20 backdrop-blur-md p-1 rounded-2xl flex items-center space-x-1 border border-white/20">
-            <button
-              onClick={() => setTimeFilter('week')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black transition ${
-                timeFilter === 'week'
-                  ? 'bg-white text-amber-900 shadow-md'
-                  : 'text-amber-100 hover:bg-white/10'
-              }`}
-            >
-              Tuần Này
-            </button>
-            <button
-              onClick={() => setTimeFilter('month')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black transition ${
-                timeFilter === 'month'
-                  ? 'bg-white text-amber-900 shadow-md'
-                  : 'text-amber-100 hover:bg-white/10'
-              }`}
-            >
-              Tháng Này
-            </button>
+          <div className="flex items-center space-x-2">
+            {/* Time Filter Pill Selector */}
+            <div className="bg-black/20 backdrop-blur-md p-1 rounded-2xl flex items-center space-x-1 border border-white/20">
+              <button
+                onClick={() => setTimeFilter('week')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition ${
+                  timeFilter === 'week'
+                    ? 'bg-white text-amber-900 shadow-md'
+                    : 'text-amber-100 hover:bg-white/10'
+                }`}
+              >
+                Tuần Này
+              </button>
+              <button
+                onClick={() => setTimeFilter('month')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition ${
+                  timeFilter === 'month'
+                    ? 'bg-white text-amber-900 shadow-md'
+                    : 'text-amber-100 hover:bg-white/10'
+                }`}
+              >
+                Tháng Này
+              </button>
+            </div>
+
+            {/* EXIT BUTTON FOR MAIN DASHBOARD INTEGRATION */}
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="px-4 py-2 rounded-2xl bg-slate-900 text-white font-extrabold text-xs hover:bg-slate-800 transition shadow-md flex items-center shrink-0"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1.5" /> Thoát Màn Hình Chính
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -108,17 +117,15 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
               key={item.student.id}
               className={`p-4 rounded-3xl border transition-all duration-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm ${
                 isTop1
-                  ? 'bg-gradient-to-r from-amber-500/10 via-amber-100/40 to-pink-50 dark:from-amber-950/40 dark:to-purple-950/40 border-amber-300 shadow-md'
+                  ? 'bg-gradient-to-r from-amber-500/10 via-amber-100/40 to-pink-50 border-amber-300 shadow-md'
                   : isTop2
-                  ? 'bg-gradient-to-r from-slate-100/80 to-purple-50 dark:from-slate-800/40 dark:to-purple-950/30 border-slate-300'
+                  ? 'bg-gradient-to-r from-slate-100/80 to-purple-50 border-slate-300'
                   : isTop3
-                  ? 'bg-gradient-to-r from-orange-50/80 to-pink-50 dark:from-amber-950/20 dark:to-pink-950/20 border-orange-200'
+                  ? 'bg-gradient-to-r from-orange-50/80 to-pink-50 border-orange-200'
                   : 'bg-white dark:bg-slate-900 border-purple-100 dark:border-purple-800/60'
               }`}
             >
-              {/* Rank & Student Info */}
               <div className="flex items-center space-x-3.5">
-                {/* Rank Badge */}
                 <div className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm shrink-0 shadow-sm">
                   {isTop1 ? (
                     <span className="text-2xl">🥇</span>
@@ -127,13 +134,12 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                   ) : isTop3 ? (
                     <span className="text-2xl">🥉</span>
                   ) : (
-                    <span className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 flex items-center justify-center font-black">
+                    <span className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-black">
                       #{index + 1}
                     </span>
                   )}
                 </div>
 
-                {/* Avatar */}
                 <img
                   src={item.student.avatar}
                   alt={item.student.name}
@@ -145,26 +151,25 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                     <h4 className="font-black text-sm text-slate-900 dark:text-white">
                       {item.student.name}
                     </h4>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-pink-100 dark:bg-pink-950 text-pink-700 dark:text-pink-300 border border-pink-200">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-pink-100 text-pink-700 border border-pink-200">
                       {item.nickname}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-purple-300 mt-0.5 font-medium">
-                    Đã hoàn thành <strong>{item.completedCount}</strong> / {item.totalCount} bài tập về nhà
+                  <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                    Đã hoàn thành <strong>{item.completedCount}</strong> bài tập về nhà
                   </p>
                 </div>
               </div>
 
-              {/* Progress & Completion Rate */}
               <div className="sm:w-48 space-y-1.5 shrink-0">
                 <div className="flex justify-between items-center text-xs font-black">
-                  <span className="text-purple-700 dark:text-purple-300 flex items-center">
+                  <span className="text-purple-700 flex items-center">
                     <Flame className="w-3.5 h-3.5 mr-1 text-pink-500" /> Tỷ lệ hoàn thành:
                   </span>
                   <span className="text-amber-600 font-extrabold">{item.rate}%</span>
                 </div>
 
-                <div className="w-full bg-purple-100 dark:bg-purple-950 h-3 rounded-full overflow-hidden p-0.5 border border-purple-200/50">
+                <div className="w-full bg-purple-100 h-3 rounded-full overflow-hidden p-0.5 border border-purple-200/50">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       item.rate >= 80
@@ -182,6 +187,18 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
           );
         })}
       </div>
+
+      {/* Exit Button at bottom as well */}
+      {onClose && (
+        <div className="pt-4 text-center">
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 rounded-2xl bg-purple-600 text-white font-extrabold text-xs hover:bg-purple-700 shadow-md inline-flex items-center"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1.5" /> Thoát Bảng Thi Đua & Quay Về Tràn Chính
+          </button>
+        </div>
+      )}
     </div>
   );
 
@@ -192,6 +209,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+            title="Thoát quay về màn hình chính"
           >
             <X className="w-5 h-5" />
           </button>
