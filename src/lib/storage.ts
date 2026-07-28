@@ -10,6 +10,8 @@ import {
   AttendanceRecord,
   ResourceLink,
   MonthlyRevenueReport,
+  HomeworkTaskItem,
+  StudentFeedback,
 } from '../types';
 import {
   INITIAL_STUDENTS,
@@ -24,15 +26,15 @@ import {
 import { generatePublicHash } from './obfuscate';
 
 const STORAGE_KEYS = {
-  STUDENTS: 'vy_students_v2',
-  CLASSES: 'vy_classes_v2',
-  SESSIONS: 'vy_sessions_v2',
-  HOMEWORK_TASKS: 'vy_hw_tasks_v2',
-  HOMEWORK_SUBMISSIONS: 'vy_hw_submissions_v2',
-  INVOICES: 'vy_invoices_v2',
-  USERS: 'vy_users_v2',
-  BANK_CONFIG: 'vy_bank_config_v2',
-  CURRENT_USER: 'vy_current_user_v2',
+  STUDENTS: 'vy_students_v3',
+  CLASSES: 'vy_classes_v3',
+  SESSIONS: 'vy_sessions_v3',
+  HOMEWORK_TASKS: 'vy_hw_tasks_v3',
+  HOMEWORK_SUBMISSIONS: 'vy_hw_submissions_v3',
+  INVOICES: 'vy_invoices_v3',
+  USERS: 'vy_users_v3',
+  BANK_CONFIG: 'vy_bank_config_v3',
+  CURRENT_USER: 'vy_current_user_v3',
 };
 
 function getItem<T>(key: string, defaultValue: T): T {
@@ -54,16 +56,14 @@ function setItem<T>(key: string, value: T): void {
 }
 
 export const StorageEngine = {
-  // Current Logged-in User Session
   getCurrentUser(): User | null {
-    return getItem<User | null>(STORAGE_KEYS.CURRENT_USER, INITIAL_USERS[0]); // Default Super Admin
+    return getItem<User | null>(STORAGE_KEYS.CURRENT_USER, INITIAL_USERS[0]);
   },
   setCurrentUser(user: User | null) {
     if (user) setItem(STORAGE_KEYS.CURRENT_USER, user);
     else localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
   },
 
-  // Users & Auth Management
   getUsers(): User[] {
     return getItem<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
   },
@@ -105,7 +105,6 @@ export const StorageEngine = {
     this.saveUsers(updated);
   },
 
-  // Data Fetching
   getStudents(): Student[] {
     return getItem<Student[]>(STORAGE_KEYS.STUDENTS, INITIAL_STUDENTS);
   },
@@ -125,13 +124,6 @@ export const StorageEngine = {
   },
   saveSessions(sessions: Session[]) {
     setItem(STORAGE_KEYS.SESSIONS, sessions);
-  },
-
-  getHomeworkTasks(): HomeworkTask[] {
-    return getItem<HomeworkTask[]>(STORAGE_KEYS.HOMEWORK_TASKS, INITIAL_HOMEWORK_TASKS);
-  },
-  saveHomeworkTasks(tasks: HomeworkTask[]) {
-    setItem(STORAGE_KEYS.HOMEWORK_TASKS, tasks);
   },
 
   getHomeworkSubmissions(): HomeworkSubmission[] {
@@ -155,13 +147,11 @@ export const StorageEngine = {
     setItem(STORAGE_KEYS.BANK_CONFIG, config);
   },
 
-  // Database Reset
   resetDatabase() {
     localStorage.clear();
     setItem(STORAGE_KEYS.STUDENTS, INITIAL_STUDENTS);
     setItem(STORAGE_KEYS.CLASSES, INITIAL_CLASSES);
     setItem(STORAGE_KEYS.SESSIONS, INITIAL_SESSIONS);
-    setItem(STORAGE_KEYS.HOMEWORK_TASKS, INITIAL_HOMEWORK_TASKS);
     setItem(STORAGE_KEYS.HOMEWORK_SUBMISSIONS, INITIAL_HOMEWORK_SUBMISSIONS);
     setItem(STORAGE_KEYS.INVOICES, INITIAL_INVOICES);
     setItem(STORAGE_KEYS.USERS, INITIAL_USERS);
@@ -169,7 +159,6 @@ export const StorageEngine = {
     setItem(STORAGE_KEYS.CURRENT_USER, INITIAL_USERS[0]);
   },
 
-  // Student Operations
   addStudent(studentData: Omit<Student, 'id' | 'publicHash' | 'createdAt' | 'status' | 'stars' | 'badges'>): Student {
     const students = this.getStudents();
     const newStudent: Student = {
@@ -179,7 +168,7 @@ export const StorageEngine = {
       status: 'active',
       stars: 10,
       badges: ['b_super_star'],
-      completedSessionHomeworkIds: [],
+      completedHomeworkTaskIds: [],
       resourceLinks: [],
       createdAt: new Date().toISOString().split('T')[0],
     };
@@ -197,40 +186,71 @@ export const StorageEngine = {
     }
   },
 
-  softDeleteStudent(studentId: string) {
-    const students = this.getStudents();
-    const idx = students.findIndex((s) => s.id === studentId);
-    if (idx !== -1) {
-      students[idx].status = 'soft_deleted';
-      this.saveStudents(students);
-    }
-  },
-
-  // Student Homework Check Toggle
-  toggleStudentHomeworkCheck(studentId: string, sessionId: string): boolean {
+  // Student Homework Task Checkbox Toggle
+  toggleHomeworkTaskItemCheck(studentId: string, sessionId: string, homeworkItemId: string, homeworkTitle: string): boolean {
     const students = this.getStudents();
     const std = students.find((s) => s.id === studentId);
     let isCheckedNow = false;
 
     if (std) {
-      if (!std.completedSessionHomeworkIds) {
-        std.completedSessionHomeworkIds = [];
-      }
-      const existingIdx = std.completedSessionHomeworkIds.indexOf(sessionId);
-      if (existingIdx !== -1) {
-        std.completedSessionHomeworkIds.splice(existingIdx, 1);
+      if (!std.completedHomeworkTaskIds) std.completedHomeworkTaskIds = [];
+      const idx = std.completedHomeworkTaskIds.indexOf(homeworkItemId);
+
+      if (idx !== -1) {
+        std.completedHomeworkTaskIds.splice(idx, 1);
         isCheckedNow = false;
       } else {
-        std.completedSessionHomeworkIds.push(sessionId);
-        std.stars = (std.stars || 0) + 2; // +2 stars bonus
+        std.completedHomeworkTaskIds.push(homeworkItemId);
+        std.stars = (std.stars || 0) + 2;
         isCheckedNow = true;
       }
       this.saveStudents(students);
+
+      // Sync to HomeworkSubmissions Queue for Admin/Super Admin Grading
+      const subs = this.getHomeworkSubmissions();
+      const existingSub = subs.find((sub) => sub.studentId === studentId && sub.homeworkTaskId === homeworkItemId);
+
+      if (existingSub) {
+        existingSub.isStudentChecked = isCheckedNow;
+      } else if (isCheckedNow) {
+        subs.unshift({
+          id: `sub_${Date.now()}`,
+          sessionId,
+          homeworkTaskId: homeworkItemId,
+          homeworkTitle,
+          studentId,
+          studentName: std.name,
+          isStudentChecked: true,
+          isTeacherFeedbackChecked: false,
+          submissionDate: new Date().toISOString().split('T')[0],
+        });
+      }
+      this.saveHomeworkSubmissions(subs);
     }
     return isCheckedNow;
   },
 
-  // Class Operations
+  // Admin / Super Admin Homework Grading & Feedback
+  submitHomeworkFeedback(submissionId: string, feedbackText: string, ratingStars: number) {
+    const subs = this.getHomeworkSubmissions();
+    const sub = subs.find((s) => s.id === submissionId);
+    if (sub) {
+      sub.isTeacherFeedbackChecked = true;
+      sub.feedbackText = feedbackText;
+      sub.ratingStars = ratingStars;
+      sub.feedbackDate = new Date().toISOString().split('T')[0];
+      this.saveHomeworkSubmissions(subs);
+
+      // Award bonus stars to student
+      const students = this.getStudents();
+      const std = students.find((s) => s.id === sub.studentId);
+      if (std) {
+        std.stars = (std.stars || 0) + ratingStars;
+        this.saveStudents(students);
+      }
+    }
+  },
+
   addClass(classData: Omit<Class, 'id' | 'totalStudents' | 'status'>): Class {
     const classes = this.getClasses();
     const newClass: Class = {
@@ -245,26 +265,14 @@ export const StorageEngine = {
     return newClass;
   },
 
-  updateClass(cls: Class) {
-    const classes = this.getClasses();
-    const idx = classes.findIndex((c) => c.id === cls.id);
-    if (idx !== -1) {
-      classes[idx] = cls;
-      this.saveClasses(classes);
-    }
-  },
-
-  // Session & Attendance Operations
   recordBulkSession(sessionData: {
     classId: string;
     teacherId: string;
     teacherName?: string;
     date: string;
     lessonContent: string;
-    strengths?: string;
-    improvements?: string;
-    homeworkAssigned?: string;
-    homeworkAttachmentLink?: string;
+    homeworkItems?: HomeworkTaskItem[];
+    studentFeedbacks?: Record<string, StudentFeedback>;
     recordLink?: string;
     sessionMaterials?: ResourceLink[];
     attendanceList: AttendanceRecord[];
@@ -273,7 +281,6 @@ export const StorageEngine = {
     const classes = this.getClasses();
     const targetClass = classes.find((c) => c.id === sessionData.classId);
 
-    // Calculate session number for this class
     const existingClassSessions = sessions.filter((s) => s.classId === sessionData.classId);
     const sessionNumber = existingClassSessions.length + 1;
 
@@ -287,10 +294,8 @@ export const StorageEngine = {
       teacherName: sessionData.teacherName || targetClass?.teacherName,
       attendance: sessionData.attendanceList,
       lessonContent: sessionData.lessonContent,
-      strengths: sessionData.strengths,
-      improvements: sessionData.improvements,
-      homeworkAssigned: sessionData.homeworkAssigned,
-      homeworkAttachmentLink: sessionData.homeworkAttachmentLink,
+      homeworkItems: sessionData.homeworkItems || [],
+      studentFeedbacks: sessionData.studentFeedbacks || {},
       recordLink: sessionData.recordLink,
       sessionMaterials: sessionData.sessionMaterials || [],
       createdAt: new Date().toISOString(),
@@ -299,7 +304,7 @@ export const StorageEngine = {
     sessions.unshift(newSession);
     this.saveSessions(sessions);
 
-    // Deduct 1 session for present / late students & add +2 stars
+    // Deduct 1 session for present / late students
     const students = this.getStudents();
     let updated = false;
 
@@ -321,13 +326,9 @@ export const StorageEngine = {
     return newSession;
   },
 
-  // Monthly Revenue Calculation (Super Admin Feature)
   calculateMonthlyRevenue(yearMonth: string): MonthlyRevenueReport {
-    // yearMonth format: "YYYY-MM" e.g. "2025-07"
     const sessions = this.getSessions();
     const students = this.getStudents();
-
-    // Filter sessions in the selected month
     const monthSessions = sessions.filter((s) => s.date.startsWith(yearMonth));
 
     let totalRevenue = 0;
@@ -346,7 +347,6 @@ export const StorageEngine = {
       const pkgCount = std.packageSessionCount || 8;
       const perSessionPrice = Math.round(pkgPrice / pkgCount);
 
-      // Count how many sessions this student attended in this month
       let countInMonth = 0;
       monthSessions.forEach((ses) => {
         const att = ses.attendance.find((a) => a.studentId === std.id);
