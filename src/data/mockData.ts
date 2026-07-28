@@ -76,7 +76,7 @@ export const INITIAL_CLASSES: Class[] = [
     schedule: 'Thứ 2 - Thứ 4 - Thứ 6 (18:00 - 19:30)',
     room: 'Phòng Online Zoom Premium 01',
     courseName: 'IELTS Breakthrough Masterclass',
-    totalStudents: 3,
+    totalStudents: 2,
     status: 'active',
     zoomLink: 'https://zoom.us/j/99988877766',
     resourceLinks: [
@@ -121,10 +121,7 @@ export const INITIAL_STUDENTS: Student[] = [
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
     notes: 'Học sinh rất tích cực, phát âm chuẩn tự tin. Cần chú ý Coherence bài viết Writing.',
     honorNickname: '👑 Chiến Thần Chăm Học',
-    completedSessionHomeworkIds: ['ses_101', 'ses_103'],
-    resourceLinks: [
-      { id: 'sres_01', title: 'Sơ Đồ Tư Duy Từ Vựng Thi Đua Minh Anh', url: 'https://coggle.it/diagram/sample' }
-    ],
+    completedHomeworkTaskIds: ['hw_item_101_1', 'hw_item_101_2'],
     createdAt: '2025-06-20',
   },
   {
@@ -145,7 +142,7 @@ export const INITIAL_STUDENTS: Student[] = [
     avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
     notes: 'Kỹ năng Listening xuất sắc. Cần làm thêm bài tập nói hàng tuần.',
     honorNickname: '⚡ Siêu Sao Bài Tập',
-    completedSessionHomeworkIds: ['ses_101'],
+    completedHomeworkTaskIds: ['hw_item_101_1'],
     createdAt: '2025-06-22',
   },
   {
@@ -166,7 +163,7 @@ export const INITIAL_STUDENTS: Student[] = [
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
     notes: 'Rất hào hứng tương tác trong lớp, hát bài hát tiếng Anh đúng nhịp.',
     honorNickname: '🧙‍♂️ Phù Thủy Từ Vựng',
-    completedSessionHomeworkIds: ['ses_102'],
+    completedHomeworkTaskIds: ['hw_item_102_1'],
     createdAt: '2025-06-25',
   },
   {
@@ -187,7 +184,7 @@ export const INITIAL_STUDENTS: Student[] = [
     avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150',
     notes: 'Cần mẫn nghe giảng, nhớ từ vựng qua hình ảnh rất nhanh.',
     honorNickname: '🎯 Bậc Thầy Cần Cù',
-    completedSessionHomeworkIds: ['ses_102'],
+    completedHomeworkTaskIds: ['hw_item_102_1'],
     createdAt: '2025-07-01',
   },
 ];
@@ -206,14 +203,33 @@ export const INITIAL_SESSIONS: Session[] = [
       { studentId: 'std_02', studentName: 'Nguyễn Bảo Long', status: 'present', note: 'Hoàn thành Listening 8.0' },
     ],
     lessonContent: 'Unit 1: Task 2 Problem & Solution Essay Structure & Advanced Cohesion Markers',
-    strengths: 'Cả lớp nắm rất vững dàn bài 4 đoạn tiêu chuẩn, áp dụng tốt từ nối C1.',
-    improvements: 'Minh Anh cần chú ý căn giờ viết trong 40 phút. Bảo Long lưu ý mở bài sắc bén hơn.',
-    homeworkAssigned: 'Viết bài luận 250 từ chủ đề Urban Traffic Congestion & Public Transport',
-    homeworkAttachmentLink: 'https://drive.google.com/file/d/sample_writing_de_bai.pdf',
+    studentFeedbacks: {
+      std_01: {
+        strengths: 'Minh Anh áp dụng từ nối C1 rất linh hoạt, dàn bài 4 đoạn xuất sắc.',
+        improvements: 'Cần phân bổ thời gian viết mở bài nhanh hơn trong 5 phút.',
+      },
+      std_02: {
+        strengths: 'Bảo Long có ý tưởng giải quyết vấn đề kẹt xe rất thực tế.',
+        improvements: 'Lưu ý từ vựng chính tả từ "metropolis" và "infrastructure".',
+      },
+    },
+    homeworkItems: [
+      {
+        id: 'hw_item_101_1',
+        title: 'Bài 1: Viết bài luận 250 từ Task 2',
+        content: 'Topic: Urban Traffic Congestion & Solutions',
+        attachmentUrl: 'https://drive.google.com/file/d/sample_de_bai_1',
+      },
+      {
+        id: 'hw_item_101_2',
+        title: 'Bài 2: Thu thuộc 15 từ vựng Academic Unit 1',
+        content: 'Tự ghi âm đọc 15 từ vựng và dán link audio',
+        attachmentUrl: 'https://quizlet.com/sample_u1_vocab',
+      },
+    ],
     recordLink: 'https://zoom.us/rec/play/sample_record_buoi_1',
     sessionMaterials: [
       { id: 'sm_01', title: 'Slide Bài Giảng Unit 1 (PDF)', url: 'https://drive.google.com/file/d/sample_slide_u1' },
-      { id: 'sm_02', title: 'List Từ Vựng C1 Problem Solution', url: 'https://quizlet.com/sample_u1_vocab' }
     ],
     createdAt: '2025-07-21T19:30:00Z',
   },
@@ -230,91 +246,75 @@ export const INITIAL_SESSIONS: Session[] = [
       { studentId: 'std_04', studentName: 'Phạm Phương Thảo', status: 'present', note: 'Hát chuẩn từ vựng' },
     ],
     lessonContent: 'Lesson 1: Zoo Animals Vocabulary, Colors & Plural Nouns Game',
-    strengths: 'Các con tương tác trò chuyện rất vui vẻ, phản xạ với Flashcards cực tốt.',
-    improvements: 'Nam Khánh cần phát âm rõ âm đuôi /s/ ở danh từ số nhiều.',
-    homeworkAssigned: 'Vẽ con vật yêu thích và quay clip 30s giới thiệu bằng tiếng Anh',
-    homeworkAttachmentLink: 'https://youtube.com/watch?v=sample_kids_song',
+    studentFeedbacks: {
+      std_03: {
+        strengths: 'Nam Khánh phát biểu tự tin, thuộc tên các con vật rất nhanh.',
+        improvements: 'Chú ý bật âm đuôi /s/ ở danh từ số nhiều "elephants".',
+      },
+      std_04: {
+        strengths: 'Phương Thảo vẽ tranh minh họa con vật rất đẹp và hát đúng nhịp.',
+        improvements: 'Nói to hơn một chút khi đứng trước lớp.',
+      },
+    },
+    homeworkItems: [
+      {
+        id: 'hw_item_102_1',
+        title: 'Bài 1: Ghi âm 3 câu miêu tả con vật yêu thích',
+        content: 'Ví dụ: "This is a lion. It is yellow and very strong!"',
+        attachmentUrl: 'https://youtube.com/watch?v=sample_kids_song',
+      },
+    ],
     recordLink: 'https://drive.google.com/file/d/sample_record_kids_b1',
     sessionMaterials: [
       { id: 'sm_03', title: 'Bài Hát Animals Song (Mp3)', url: 'https://soundcloud.com/sample_animals' }
     ],
     createdAt: '2025-07-22T19:00:00Z',
   },
-  {
-    id: 'ses_103',
-    classId: 'cls_ielts_65',
-    className: 'IELTS Intensive 6.5+ (Lớp T2 - T4 - T6)',
-    sessionNumber: 2,
-    date: '2025-07-23',
-    teacherId: 'u_teacher_01',
-    teacherName: 'Teacher Alex Smith',
-    attendance: [
-      { studentId: 'std_01', studentName: 'Trần Minh Anh', status: 'present', note: 'Bài viết tốt' },
-      { studentId: 'std_02', studentName: 'Nguyễn Bảo Long', status: 'present', note: 'Nói tự tin' },
-    ],
-    lessonContent: 'Unit 2: Speaking Part 2 - Describing a Memorable Journey (Mindmapping)',
-    strengths: 'Minh Anh dùng Idioms giao tiếp rất tự nhiên. Bảo Long có âm ngữ điệu cuốn hút.',
-    improvements: 'Lưu ý mở rộng thì quá khứ hoàn thành Past Perfect trong câu chuyện.',
-    homeworkAssigned: 'Ghi âm 2 phút phát biểu cho câu hỏi Speaking Part 2',
-    homeworkAttachmentLink: 'https://drive.google.com/file/d/sample_speaking_prompt',
-    recordLink: 'https://zoom.us/rec/play/sample_record_buoi_2',
-    sessionMaterials: [
-      { id: 'sm_04', title: 'Mindmap Từ Vựng Travel & Journey', url: 'https://coggle.it/sample_travel' }
-    ],
-    createdAt: '2025-07-23T19:30:00Z',
-  },
-];
-
-export const INITIAL_HOMEWORK_TASKS: HomeworkTask[] = [
-  {
-    id: 'hw_201',
-    classId: 'cls_ielts_65',
-    className: 'IELTS Intensive 6.5+ (Lớp T2 - T4 - T6)',
-    teacherId: 'u_teacher_01',
-    title: 'Writing Task 2: Problem & Solution Essay',
-    content: 'Write an essay of at least 250 words about: "In many cities, traffic congestion is a severe issue. What are the causes, and what solutions can governments implement?"',
-    attachmentLink: 'https://drive.google.com/file/d/sample_writing_de_bai.pdf',
-    deadline: '2025-07-30T23:59',
-    createdAt: '2025-07-21',
-  },
-  {
-    id: 'hw_202',
-    classId: 'cls_kids_03',
-    className: 'English Communication Starters (Lớp T3 - T5)',
-    teacherId: 'u_teacher_02',
-    title: 'Ghi Âm Miêu Tả Con Vật Yêu Thích',
-    content: 'Các con hãy quay clip hoặc ghi âm 3 câu miêu tả con vật yêu thích (Ví dụ: "This is an elephant. It is big and grey!").',
-    attachmentLink: 'https://youtube.com/watch?v=sample_kids_song',
-    deadline: '2025-07-29T20:00',
-    createdAt: '2025-07-22',
-  },
 ];
 
 export const INITIAL_HOMEWORK_SUBMISSIONS: HomeworkSubmission[] = [
   {
     id: 'sub_301',
-    taskId: 'hw_201',
+    sessionId: 'ses_101',
+    homeworkTaskId: 'hw_item_101_1',
+    homeworkTitle: 'Bài 1: Viết bài luận 250 từ Task 2',
     studentId: 'std_01',
     studentName: 'Trần Minh Anh',
-    isCompleted: true,
-    content: 'Nowadays, urban traffic congestion has become a pressing dilemma in many major metropolises...',
+    isStudentChecked: true,
+    isTeacherFeedbackChecked: false, // Cần Admin/Super Admin chấm & feedback!
+    studentContent: 'Con đã hoàn thành bài viết essay 280 từ trên file Google Docs.',
     submissionDate: '2025-07-24',
-    feedback: 'Bài viết lập luận rất chặt chẽ, từ vựng C1 xuất sắc! Đã tặng 3 sao thưởng.',
-    ratingStars: 3,
-    badgeAwarded: 'b_homework_hero',
   },
   {
     id: 'sub_302',
-    taskId: 'hw_202',
+    sessionId: 'ses_101',
+    homeworkTaskId: 'hw_item_101_2',
+    homeworkTitle: 'Bài 2: Thu thuộc 15 từ vựng Academic Unit 1',
+    studentId: 'std_01',
+    studentName: 'Trần Minh Anh',
+    isStudentChecked: true,
+    isTeacherFeedbackChecked: true,
+    studentContent: 'Đã học thuộc và đọc ghi âm chuẩn 15 từ.',
+    feedbackText: 'Minh Anh phát âm 15 từ rất chuẩn! Thưởng cho con 3 sao nhé.',
+    ratingStars: 3,
+    submissionDate: '2025-07-24',
+    feedbackDate: '2025-07-25',
+  },
+  {
+    id: 'sub_303',
+    sessionId: 'ses_102',
+    homeworkTaskId: 'hw_item_102_1',
+    homeworkTitle: 'Bài 1: Ghi âm 3 câu miêu tả con vật yêu thích',
     studentId: 'std_03',
     studentName: 'Lê Nam Khánh',
-    isCompleted: true,
-    content: 'Con nộp bài nói: "Hello Teacher Alex, This is a lion. It is yellow and very strong!"',
+    isStudentChecked: true,
+    isTeacherFeedbackChecked: false, // Cần Admin/Super Admin chấm & feedback!
+    studentContent: 'Con đã thu âm: "This is a lion. It is yellow and very strong!"',
     submissionDate: '2025-07-23',
-    feedback: 'Nam Khánh nói rất tự tin, phát âm "strong" chuẩn! Thưởng con 2 sao.',
-    ratingStars: 2,
   },
 ];
+
+export const INITIAL_HOMEWORK_TASKS: HomeworkTask[] = [];
 
 export const INITIAL_INVOICES: Invoice[] = [
   {
