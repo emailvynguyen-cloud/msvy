@@ -1,32 +1,26 @@
 import React, { useState } from 'react';
+import { Student, Class, Session, HomeworkTask, HomeworkSubmission, Invoice, BankConfig } from '../../types';
+import { StorageEngine } from '../../lib/storage';
+import { formatVND, getVietQRUrl, copyToClipboard } from '../../lib/vietqr';
+import { MascotWidget } from '../common/MascotWidget';
 import {
-  Student,
-  Session,
-  Class,
-  HomeworkTask,
-  HomeworkSubmission,
-  Invoice,
-  BankConfig,
-  ResourceLink,
-} from '../../types';
-import {
-  GraduationCap,
-  Clock,
-  BookOpen,
-  User,
   Calendar,
   CheckCircle2,
-  Video,
+  BookOpen,
   FileText,
-  ExternalLink,
-  Flame,
-  Sparkles,
-  QrCode,
+  Video,
   Award,
+  Star,
   Download,
+  Copy,
   Check,
+  Flame,
+  User,
+  Sparkles,
+  ExternalLink,
+  ChevronRight,
+  FolderOpen,
 } from 'lucide-react';
-import { StorageEngine } from '../../lib/storage';
 import confetti from 'canvas-confetti';
 
 interface StudentPortalProps {
@@ -50,313 +44,307 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
   bankConfig,
   onRefreshData,
 }) => {
-  const [activeTab, setActiveTab] = useState<'sessions' | 'materials'>('sessions');
+  const [copiedCode, setCopiedCode] = useState(false);
 
-  // Filter student's class & sessions
-  const studentClass = classes.find((c) => currentStudent.classIds.includes(c.id)) || classes[0];
-  
-  const studentSessions = sessions
-    .filter((s) => s.attendance.some((att) => att.studentId === currentStudent.id))
-    .sort((a, b) => a.sessionNumber - b.sessionNumber);
+  // Student's classes
+  const studentClasses = classes.filter((c) => currentStudent.classIds.includes(c.id));
+  const primaryClass = studentClasses[0] || classes[0];
 
-  // Compute Overall Progress Bar %
-  const totalSessionsCount = Math.max(1, studentSessions.length);
-  const completedHomeworkCount = currentStudent.completedSessionHomeworkIds
-    ? currentStudent.completedSessionHomeworkIds.length
-    : 0;
-  
-  const overallProgressPercent = Math.min(
-    100,
-    Math.round((completedHomeworkCount / totalSessionsCount) * 100)
-  );
+  // Student's sessions
+  const studentSessions = sessions.filter((s) => s.classId === primaryClass?.id);
 
-  // Toggle Homework Checkbox per session
-  const handleToggleHomeworkCheck = (sessionId: string) => {
-    const isNowChecked = StorageEngine.toggleStudentHomeworkCheck(currentStudent.id, sessionId);
-    
+  // Progress Bar Calculation
+  const totalCount = Math.max(1, studentSessions.length);
+  const completedCount = currentStudent.completedHomeworkTaskIds ? currentStudent.completedHomeworkTaskIds.length : 0;
+  const progressPercent = Math.min(100, Math.round((completedCount / totalCount) * 100));
+
+  // Toggle Homework Item Checkbox
+  const handleToggleHomeworkItem = (sessionId: string, homeworkItemId: string, homeworkTitle: string) => {
+    const isNowChecked = StorageEngine.toggleHomeworkTaskItemCheck(
+      currentStudent.id,
+      sessionId,
+      homeworkItemId,
+      homeworkTitle
+    );
+
     if (isNowChecked) {
       confetti({
-        particleCount: 60,
-        spread: 70,
-        origin: { y: 0.6 },
+        particleCount: 40,
+        spread: 60,
+        origin: { y: 0.7 },
       });
     }
 
     onRefreshData();
   };
 
-  // Collect all session materials + class resources into one Hub
-  const allMaterials: ResourceLink[] = [];
-  
-  if (studentClass?.resourceLinks) {
-    allMaterials.push(...studentClass.resourceLinks);
-  }
-
-  studentSessions.forEach((ses) => {
-    if (ses.sessionMaterials) {
-      allMaterials.push(...ses.sessionMaterials);
-    }
-  });
-
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
       
-      {/* 1. BẢNG THÔNG TIN CHUNG CỦA HỌC VIÊN & LOGO */}
-      <div className="bg-gradient-to-r from-purple-500 via-pink-400 to-indigo-500 text-white p-6 sm:p-8 rounded-3xl shadow-xl relative overflow-hidden space-y-6">
-        
-        {/* Background Decorative Blobs */}
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-        
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
-          
-          {/* Logo & Student Info */}
-          <div className="flex items-center space-x-4 text-center sm:text-left">
-            <img
-              src="/logo.jpg"
-              alt="Ms. Vy English Logo"
-              className="w-20 h-20 rounded-3xl object-cover border-4 border-white/60 shadow-lg shrink-0"
-            />
+      {/* 1. GENERAL INFO CARD (Logo, Teacher, Course, Schedule, Remaining Sessions) */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-purple-100 dark:border-purple-800 p-6 shadow-sm relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-5">
+          <img
+            src={currentStudent.avatar || '/logo.jpg'}
+            alt={currentStudent.name}
+            className="w-20 h-20 rounded-3xl object-cover border-4 border-purple-100 shadow-md shrink-0"
+          />
 
-            <div>
-              <div className="flex items-center justify-center sm:justify-start space-x-2">
-                <h2 className="text-2xl font-black">{currentStudent.name}</h2>
-                <span className="px-3 py-0.5 rounded-full text-[10px] font-black bg-white/20 uppercase tracking-wider backdrop-blur-sm">
-                  Cổng Học Viên Online
-                </span>
-              </div>
+          <div className="flex-1 text-center sm:text-left space-y-1">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+              <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                {currentStudent.name}
+              </h2>
+              <span className="px-3 py-1 rounded-full text-xs font-black bg-pink-100 text-pink-800 border border-pink-200 inline-block">
+                {currentStudent.honorNickname || '⭐ Chiến Thần Chăm Học'}
+              </span>
+            </div>
 
-              <p className="text-xs text-purple-100 mt-1 font-medium">
-                {currentStudent.honorNickname || '👑 Học Viên MS. VY ENGLISH'}
-              </p>
+            <div className="text-xs text-slate-600 dark:text-slate-400 font-medium space-y-0.5">
+              <p><strong>Lớp học:</strong> {primaryClass?.className || 'Lớp Ms. Vy English'}</p>
+              <p><strong>Giáo viên phụ trách:</strong> {primaryClass?.teacherName || 'Ms. Vy'}</p>
+              <p><strong>Giáo trình:</strong> {primaryClass?.courseName || 'Tiếng Anh Giao Tiếp'}</p>
+              <p><strong>Lịch học:</strong> {primaryClass?.schedule || 'Thứ 2 - Thứ 4 - Thứ 6'}</p>
             </div>
           </div>
 
-          {/* Student Info Card Details */}
-          <div className="bg-white/15 backdrop-blur-md p-4 rounded-2xl border border-white/30 text-xs font-medium space-y-1.5 w-full sm:w-auto shrink-0">
-            <p className="flex items-center text-purple-100">
-              <User className="w-4 h-4 mr-2 text-pink-200 shrink-0" />
-              Tên Giáo Viên: <strong className="text-white ml-1">{studentClass?.teacherName || 'Teacher Alex Smith'}</strong>
-            </p>
-
-            <p className="flex items-center text-purple-100">
-              <BookOpen className="w-4 h-4 mr-2 text-pink-200 shrink-0" />
-              Giáo Trình: <strong className="text-white ml-1">{studentClass?.courseName || 'IELTS Breakthrough'}</strong>
-            </p>
-
-            <p className="flex items-center text-purple-100">
-              <Clock className="w-4 h-4 mr-2 text-pink-200 shrink-0" />
-              Lịch Học: <strong className="text-white ml-1">{studentClass?.schedule || 'T2 - T4 - T6'}</strong>
-            </p>
-
-            <p className="flex items-center text-amber-200 font-bold">
-              <Flame className="w-4 h-4 mr-2 text-amber-300 shrink-0 animate-bounce" />
-              Số Buổi Học Phí Còn Lại: <strong className="text-white ml-1 text-sm font-black">{currentStudent.remainingSessions} / {currentStudent.totalPaidSessions} buổi</strong>
-            </p>
-          </div>
-
-        </div>
-
-        {/* 2. THANH TỔNG TIẾN ĐỘ ĐÃ HOÀN THÀNH */}
-        <div className="bg-black/20 backdrop-blur-md p-4 rounded-2xl border border-white/20 space-y-2">
-          <div className="flex items-center justify-between text-xs font-black">
-            <span className="flex items-center text-purple-100">
-              <Sparkles className="w-4 h-4 mr-1.5 text-amber-300" />
-              THANH TỔNG TIẾN ĐỘ HOÀN THÀNH BÀI TẬP VỀ NHÀ:
+          {/* Remaining Sessions Highlight Pill */}
+          <div className="bg-gradient-to-tr from-purple-600 to-pink-500 text-white p-4 rounded-3xl shadow-lg text-center min-w-[150px] shrink-0">
+            <span className="text-[10px] font-black uppercase tracking-wider block opacity-90">
+              Số Buổi Học Phí Còn Lại
             </span>
-            <span className="text-amber-300 text-sm">{overallProgressPercent}% Hoàn Thành ({completedHomeworkCount}/{totalSessionsCount} buổi)</span>
-          </div>
-
-          <div className="w-full bg-black/30 h-3.5 rounded-full overflow-hidden p-0.5 border border-white/20">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-amber-300 via-pink-400 to-emerald-300 transition-all duration-500 shadow-sm"
-              style={{ width: `${overallProgressPercent}%` }}
-            />
+            <div className="text-3xl font-black mt-0.5">
+              {currentStudent.remainingSessions} <span className="text-sm font-bold">Buổi</span>
+            </div>
+            <span className="text-[10px] font-medium block mt-1 opacity-80">
+              Gói đã đóng: {currentStudent.totalPaidSessions || 8} buổi
+            </span>
           </div>
         </div>
-
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex items-center space-x-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-purple-100 dark:border-purple-800 shadow-sm">
-        <button
-          onClick={() => setActiveTab('sessions')}
-          className={`flex-1 py-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-1.5 ${
-            activeTab === 'sessions'
-              ? 'bg-purple-600 text-white shadow-md'
-              : 'text-slate-600 dark:text-purple-300 hover:bg-purple-50'
-          }`}
-        >
-          <Calendar className="w-4 h-4" />
-          <span>DANH SÁCH TỪNG BUỔI HỌC ({studentSessions.length})</span>
-        </button>
+      {/* Mascot Widget */}
+      <MascotWidget studentName={currentStudent.name} starsCount={currentStudent.stars} />
 
-        <button
-          onClick={() => setActiveTab('materials')}
-          className={`flex-1 py-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-1.5 ${
-            activeTab === 'materials'
-              ? 'bg-purple-600 text-white shadow-md'
-              : 'text-slate-600 dark:text-purple-300 hover:bg-purple-50'
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          <span>TỔNG HỢP TÀI LIỆU HỌC TẬP ({allMaterials.length})</span>
-        </button>
+      {/* 2. OVERALL PROGRESS BAR */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-purple-100 p-6 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Flame className="w-5 h-5 text-pink-500 animate-bounce" />
+            <h3 className="font-extrabold text-sm text-slate-900 dark:text-white uppercase tracking-wider">
+              Thanh Tổng Tiến Độ Hoàn Thành Bài Tập Về Nhà
+            </h3>
+          </div>
+          <span className="text-sm font-black text-purple-700">{progressPercent}% Hoàn Thành</span>
+        </div>
+
+        <div className="w-full bg-purple-100 h-4 rounded-full overflow-hidden p-0.5 border border-purple-200">
+          <div
+            className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-amber-400 rounded-full transition-all duration-700"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+        <p className="text-xs text-slate-500 font-medium">
+          Đã tích chọn {completedCount} bài tập về nhà. Tích cực làm bài để vinh danh trên Bảng Thành Tích Thi Đua!
+        </p>
       </div>
 
-      {/* 3. DANH SÁCH THEO TỪNG BUỔI HỌC */}
-      {activeTab === 'sessions' && (
-        <div className="space-y-4">
-          {studentSessions.map((ses) => {
-            const isDone = currentStudent.completedSessionHomeworkIds
-              ? currentStudent.completedSessionHomeworkIds.includes(ses.id)
-              : false;
+      {/* 3. SESSION LIST (PER-SESSION INFORMATION) */}
+      <div className="space-y-4">
+        <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center">
+          <Calendar className="w-5 h-5 mr-2 text-purple-600" /> Bảng Theo Dõi Học Tập Theo Buổi
+        </h3>
+
+        {studentSessions.length > 0 ? (
+          studentSessions.map((session) => {
+            const myFeedback = session.studentFeedbacks ? session.studentFeedbacks[currentStudent.id] : null;
+            const itemsList = session.homeworkItems || [];
 
             return (
               <div
-                key={ses.id}
-                className={`p-6 rounded-3xl border transition-all duration-300 space-y-4 ${
-                  isDone
-                    ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800 shadow-sm'
-                    : 'bg-white dark:bg-slate-900 border-purple-100 dark:border-purple-800 shadow-sm hover:shadow-md'
-                }`}
+                key={session.id}
+                className="bg-white dark:bg-slate-900 rounded-3xl border border-purple-100 dark:border-purple-800/60 p-6 shadow-sm space-y-4 hover:border-purple-300 transition"
               >
-                {/* Header Buổi Học */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-100 dark:border-purple-800/60 pb-3">
+                {/* Session Header: Number & Date */}
+                <div className="flex items-center justify-between border-b border-purple-100 pb-3">
                   <div className="flex items-center space-x-3">
-                    <span className="px-3.5 py-1.5 rounded-2xl bg-purple-600 text-white text-xs font-black shadow-sm">
-                      BUỔI {ses.sessionNumber}
+                    <span className="w-10 h-10 rounded-2xl bg-purple-600 text-white font-black text-sm flex items-center justify-center shadow-md">
+                      #{session.sessionNumber}
                     </span>
-                    <span className="font-extrabold text-xs text-purple-700 dark:text-purple-300">
-                      📅 Ngày học: {ses.date}
-                    </span>
+                    <div>
+                      <h4 className="font-black text-sm text-slate-900 dark:text-white">
+                        Buổi Học Số {session.sessionNumber}
+                      </h4>
+                      <span className="text-xs text-slate-500 font-medium">
+                        Ngày học: {session.date} • GV: {session.teacherName || 'Ms. Vy'}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* CHECKBOX HOÀN THÀNH BÀI TẬP */}
-                  <button
-                    onClick={() => handleToggleHomeworkCheck(ses.id)}
-                    className={`px-4 py-2 rounded-2xl text-xs font-extrabold transition flex items-center shadow-sm ${
-                      isDone
-                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                        : 'bg-slate-100 text-slate-700 hover:bg-purple-100 hover:text-purple-800 border border-slate-200'
-                    }`}
-                  >
-                    <Check className={`w-4 h-4 mr-1.5 ${isDone ? 'stroke-[3]' : ''}`} />
-                    {isDone ? '✓ Đã Hoàn Thành Bài Tập' : '☐ Đánh Dấu Đã Làm Bài'}
-                  </button>
+                  {session.recordLink && (
+                    <a
+                      href={session.recordLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3.5 py-1.5 rounded-xl bg-indigo-100 text-indigo-800 text-xs font-bold hover:bg-indigo-200 transition flex items-center"
+                    >
+                      <Video className="w-3.5 h-3.5 mr-1" /> Xem Record Video
+                    </a>
+                  )}
                 </div>
 
-                {/* Nội Dung Bài Học */}
-                <div>
-                  <h4 className="font-black text-sm text-slate-900 dark:text-white flex items-center">
-                    <BookOpen className="w-4 h-4 mr-1.5 text-purple-600" /> Nội Dung Bài Học:
-                  </h4>
-                  <p className="text-xs text-slate-700 dark:text-slate-200 mt-1 font-medium bg-purple-50/60 dark:bg-purple-950/40 p-3 rounded-2xl border border-purple-100/80">
-                    {ses.lessonContent}
+                {/* Lesson Content */}
+                <div className="space-y-1">
+                  <span className="text-xs font-extrabold text-purple-900 dark:text-purple-300 uppercase tracking-wider block">
+                    📘 Nội Dung Học Trong Buổi:
+                  </span>
+                  <p className="text-xs font-medium text-slate-800 dark:text-slate-200 bg-purple-50/50 p-3 rounded-2xl border border-purple-100">
+                    {session.lessonContent}
                   </p>
                 </div>
 
-                {/* Nhận Xét Của Giáo Viên: Điểm Mạnh & Điểm Cần Cải Thiện */}
-                {(ses.strengths || ses.improvements) && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {ses.strengths && (
-                      <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
-                        <span className="font-black flex items-center text-emerald-700 dark:text-emerald-300 uppercase text-[11px]">
-                          💪 Điểm Mạnh Trong Buổi:
-                        </span>
-                        <p className="font-medium">{ses.strengths}</p>
-                      </div>
-                    )}
-
-                    {ses.improvements && (
-                      <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 text-xs text-amber-900 dark:text-amber-200 space-y-1">
-                        <span className="font-black flex items-center text-amber-700 dark:text-amber-300 uppercase text-[11px]">
-                          🎯 Điểm Cần Cải Thiện:
-                        </span>
-                        <p className="font-medium">{ses.improvements}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Bài Tập Về Nhà Cần Làm & Link Đính Kèm */}
-                {ses.homeworkAssigned && (
-                  <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 space-y-2 text-xs">
-                    <span className="font-black text-indigo-900 dark:text-indigo-200 flex items-center uppercase text-[11px]">
-                      📝 Bài Tập Về Nhà Cần Làm:
+                {/* INDIVIDUAL TEACHER COMMENT FOR THIS STUDENT */}
+                {myFeedback && (myFeedback.strengths || myFeedback.improvements) && (
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 space-y-2 text-xs">
+                    <span className="font-black text-pink-900 uppercase block">
+                      💬 Nhận Xét Của Giáo Viên Dành Cho {currentStudent.name}:
                     </span>
-                    <p className="text-slate-800 dark:text-slate-200 font-medium">
-                      {ses.homeworkAssigned}
-                    </p>
 
-                    {ses.homeworkAttachmentLink && (
-                      <a
-                        href={ses.homeworkAttachmentLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center px-3 py-1.5 rounded-xl bg-indigo-600 text-white font-bold text-[11px] hover:bg-indigo-700 transition"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5 mr-1" /> Xem Đề Bài / File Đính Kèm
-                      </a>
+                    {myFeedback.strengths && (
+                      <p className="text-emerald-800 font-medium">
+                        💪 <strong>Điểm mạnh:</strong> {myFeedback.strengths}
+                      </p>
+                    )}
+
+                    {myFeedback.improvements && (
+                      <p className="text-amber-800 font-medium">
+                        🎯 <strong>Điểm cần cải thiện:</strong> {myFeedback.improvements}
+                      </p>
                     )}
                   </div>
                 )}
 
-                {/* Link Record Buổi Học */}
-                {ses.recordLink && (
-                  <div className="flex items-center justify-between p-3 rounded-2xl bg-pink-50 dark:bg-pink-950/30 border border-pink-200">
-                    <span className="text-xs font-bold text-pink-900 dark:text-pink-200 flex items-center">
-                      <Video className="w-4 h-4 mr-1.5 text-pink-600" /> Link Record Xem Lại Buổi Học:
-                    </span>
-                    <a
-                      href={ses.recordLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-3.5 py-1.5 rounded-xl bg-pink-600 text-white font-extrabold text-xs hover:bg-pink-700 transition shadow-sm"
-                    >
-                      Bật Video Record ▶
-                    </a>
-                  </div>
-                )}
+                {/* PER-ITEM HOMEWORK TASKS & CHECKBOX */}
+                <div className="space-y-2">
+                  <span className="text-xs font-extrabold text-purple-900 dark:text-purple-300 uppercase tracking-wider block">
+                    📝 Bài Tập Về Nhà Cần Làm ({itemsList.length} bài):
+                  </span>
+
+                  {itemsList.length > 0 ? (
+                    itemsList.map((hwItem) => {
+                      const isItemChecked = currentStudent.completedHomeworkTaskIds?.includes(hwItem.id) || false;
+                      const subRecord = homeworkSubmissions.find((s) => s.studentId === currentStudent.id && s.homeworkTaskId === hwItem.id);
+
+                      return (
+                        <div
+                          key={hwItem.id}
+                          className={`p-4 rounded-2xl border transition space-y-2 ${
+                            isItemChecked
+                              ? 'bg-emerald-50/50 border-emerald-200'
+                              : 'bg-slate-50 border-purple-100'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="space-y-1">
+                              <h5 className="font-extrabold text-xs text-slate-900 dark:text-white">
+                                {hwItem.title}
+                              </h5>
+                              {hwItem.content && (
+                                <p className="text-xs text-slate-600 font-medium">{hwItem.content}</p>
+                              )}
+                              {hwItem.attachmentUrl && (
+                                <a
+                                  href={hwItem.attachmentUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-xs text-purple-700 font-bold underline inline-block"
+                                >
+                                  🔗 Xem File / Ảnh bài tập đính kèm
+                                </a>
+                              )}
+                            </div>
+
+                            {/* PER-ITEM CHECKBOX */}
+                            <button
+                              onClick={() => handleToggleHomeworkItem(session.id, hwItem.id, hwItem.title)}
+                              className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center shrink-0 ${
+                                isItemChecked
+                                  ? 'bg-emerald-600 text-white shadow-sm'
+                                  : 'bg-purple-100 text-purple-900 hover:bg-purple-200'
+                              }`}
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                              {isItemChecked ? '✓ Đã Làm Bài' : 'Check Đã Làm'}
+                            </button>
+                          </div>
+
+                          {/* TEACHER FEEDBACK STATUS */}
+                          {subRecord && (
+                            <div className="pt-2 border-t border-purple-100/60 flex items-center justify-between text-[11px]">
+                              <span className="text-slate-500 font-medium">Trạng thái chấm bài của GV:</span>
+                              {subRecord.isTeacherFeedbackChecked ? (
+                                <span className="font-black text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                                  ✓ Đã Feedback ({subRecord.ratingStars || 3} ⭐): {subRecord.feedbackText}
+                                </span>
+                              ) : (
+                                <span className="font-black text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full">
+                                  ⏳ Đã nộp bài - Đang chờ Giáo viên / Admin feedback
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">Không có bài tập về nhà cho buổi này.</p>
+                  )}
+                </div>
 
               </div>
             );
-          })}
-        </div>
-      )}
+          })
+        ) : (
+          <div className="p-8 text-center bg-white rounded-3xl border border-purple-100 text-xs text-slate-500 italic">
+            Chưa có thông tin buổi học nào được cập nhật.
+          </div>
+        )}
+      </div>
 
-      {/* 4. TỔNG HỢP TÀI LIỆU HỌC TẬP */}
-      {activeTab === 'materials' && (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-purple-100 dark:border-purple-800 shadow-sm p-6 space-y-4">
-          <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center">
-            <FileText className="w-5 h-5 mr-2 text-purple-600" /> Kho Tổng Hợp Tài Liệu Học Tập
-          </h3>
-          <p className="text-xs text-slate-500 font-medium">
-            Tất cả các đường link tài liệu do giáo viên cập nhật từ các buổi học và giáo trình lớp
-          </p>
+      {/* 4. ALL SESSION MATERIALS HUB */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-purple-100 p-6 shadow-sm space-y-4">
+        <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center">
+          <FolderOpen className="w-5 h-5 mr-2 text-purple-600" /> Kho Tài Liệu & Giáo Trình Buổi Học
+        </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {allMaterials.map((mat) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {primaryClass?.resourceLinks && primaryClass.resourceLinks.length > 0 ? (
+            primaryClass.resourceLinks.map((res) => (
               <a
-                key={mat.id}
-                href={mat.url}
+                key={res.id}
+                href={res.url}
                 target="_blank"
                 rel="noreferrer"
-                className="p-4 rounded-2xl border border-purple-100 dark:border-purple-800 bg-purple-50/50 hover:bg-purple-100 transition flex items-center justify-between group"
+                className="p-4 rounded-2xl border border-purple-100 bg-purple-50/40 hover:border-purple-300 transition flex items-center space-x-3 group"
               >
+                <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-black group-hover:scale-110 transition">
+                  <FileText className="w-5 h-5" />
+                </div>
                 <div>
-                  <h4 className="font-black text-xs text-purple-900 dark:text-purple-200 group-hover:text-purple-600 transition">
-                    {mat.title}
+                  <h4 className="font-black text-xs text-slate-900 dark:text-white group-hover:text-purple-600 transition">
+                    {res.title}
                   </h4>
-                  <span className="text-[10px] text-slate-400 font-mono">
-                    {mat.url}
+                  <span className="text-[10px] text-purple-600 font-bold underline">
+                    Bấm để tải về / xem tài liệu →
                   </span>
                 </div>
-                <ExternalLink className="w-4 h-4 text-purple-600 shrink-0 ml-2" />
               </a>
-            ))}
-          </div>
+            ))
+          ) : (
+            <p className="text-xs text-slate-400 italic col-span-2">Chưa có tài liệu đính kèm.</p>
+          )}
         </div>
-      )}
+      </div>
 
     </div>
   );
