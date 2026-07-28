@@ -5,7 +5,7 @@ export interface User {
   email: string;
   displayName: string;
   role: UserRole;
-  password?: string; // Mật khẩu đăng nhập
+  password?: string;
   avatarUrl?: string;
   phoneNumber?: string;
   createdAt: string;
@@ -19,9 +19,21 @@ export interface ResourceLink {
   addedDate?: string;
 }
 
+export interface HomeworkTaskItem {
+  id: string;
+  title: string;
+  content?: string;
+  attachmentUrl?: string;
+}
+
+export interface StudentFeedback {
+  strengths?: string; // Điểm mạnh riêng của học viên này
+  improvements?: string; // Điểm cần cải thiện riêng của học viên này
+}
+
 export interface Student {
   id: string;
-  publicHash: string; // NanoID cho đường dẫn riêng bảo mật của học viên
+  publicHash: string;
   name: string;
   email: string;
   phone: string;
@@ -29,16 +41,16 @@ export interface Student {
   classIds: string[];
   remainingSessions: number;
   totalPaidSessions: number;
-  tuitionPackagePrice?: number; // Ví dụ: 2,000,000đ
-  packageSessionCount?: number; // Ví dụ: 8 buổi
+  tuitionPackagePrice?: number;
+  packageSessionCount?: number;
   status: 'active' | 'soft_deleted';
   stars: number;
-  badges: string[]; // Danh sách Badge IDs
+  badges: string[];
   avatar: string;
   notes?: string;
-  honorNickname?: string; // Biệt danh vinh danh thi đua (e.g. 👑 Chiến Thần Chăm Học)
-  completedSessionHomeworkIds?: string[]; // IDs các buổi học viên đã làm bài tập
-  resourceLinks?: ResourceLink[]; // Link tài liệu học tập dành riêng
+  honorNickname?: string;
+  completedHomeworkTaskIds?: string[]; // IDs các homework item mà học viên đã check xong
+  resourceLinks?: ResourceLink[];
   createdAt: string;
 }
 
@@ -48,13 +60,13 @@ export interface Class {
   code: string;
   teacherId: string;
   teacherName: string;
-  schedule: string; // e.g. "T2 - T4 - T6 (18:00 - 19:30)"
+  schedule: string;
   room: string;
-  courseName: string; // Giáo trình học
+  courseName: string;
   totalStudents: number;
   status: 'active' | 'completed' | 'paused';
-  zoomLink?: string; // Link lớp học trực tuyến Zoom/Google Meet
-  resourceLinks?: ResourceLink[]; // Link tài liệu học tập của lớp
+  zoomLink?: string;
+  resourceLinks?: ResourceLink[];
 }
 
 export type AttendanceStatus = 'present' | 'excused' | 'unexcused' | 'late';
@@ -70,18 +82,16 @@ export interface Session {
   id: string;
   classId: string;
   className: string;
-  sessionNumber: number; // Số thứ tự buổi học (Buổi 1, Buổi 2...)
+  sessionNumber: number;
   date: string; // YYYY-MM-DD
   teacherId: string;
   teacherName?: string;
   attendance: AttendanceRecord[];
-  lessonContent: string; // Nội dung bài học
-  strengths?: string; // Điểm mạnh của học viên/lớp
-  improvements?: string; // Điểm cần cải thiện
-  homeworkAssigned?: string; // Bài tập về nhà
-  homeworkAttachmentLink?: string; // Link/ảnh bài tập đính kèm
-  recordLink?: string; // Link record video buổi học
-  sessionMaterials?: ResourceLink[]; // Link tài liệu đính kèm trong buổi học
+  lessonContent: string;
+  homeworkItems?: HomeworkTaskItem[]; // Danh sách NỀN NỔI nhiều bài tập về nhà
+  studentFeedbacks?: Record<string, StudentFeedback>; // Nhận xét riêng cho từng studentId
+  recordLink?: string;
+  sessionMaterials?: ResourceLink[];
   createdAt: string;
 }
 
@@ -99,16 +109,18 @@ export interface HomeworkTask {
 
 export interface HomeworkSubmission {
   id: string;
-  taskId: string;
+  sessionId: string;
+  homeworkTaskId: string; // ID bài tập
+  homeworkTitle: string;
   studentId: string;
   studentName: string;
-  isCompleted: boolean;
-  content?: string;
-  attachmentUrl?: string;
-  submissionDate?: string;
-  feedback?: string;
+  isStudentChecked: boolean; // Học viên tích chọn đã làm
+  isTeacherFeedbackChecked: boolean; // Admin/Super Admin tích chọn đã feedback
+  studentContent?: string;
+  feedbackText?: string;
   ratingStars?: number;
-  badgeAwarded?: string;
+  submissionDate?: string;
+  feedbackDate?: string;
 }
 
 export interface Invoice {
@@ -155,7 +167,7 @@ export interface BankConfig {
 }
 
 export interface MonthlyRevenueReport {
-  monthYear: string; // "2025-07"
+  monthYear: string;
   totalRevenue: number;
   studentBreakdown: {
     studentId: string;
