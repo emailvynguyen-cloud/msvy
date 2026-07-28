@@ -13,6 +13,14 @@ import { AddSessionModal } from './components/common/AddSessionModal';
 import { GeminiSettingsModal } from './components/common/GeminiSettingsModal';
 import { Sparkles, Heart } from 'lucide-react';
 
+const INITIAL_BANK_CONFIG_FALLBACK: BankConfig = {
+  bankId: 'MB',
+  bankName: 'MBBank',
+  accountNo: '0388999888',
+  accountName: 'MS. VY ENGLISH - MS VY',
+  centerLogoUrl: '/logo.jpg',
+};
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(StorageEngine.getCurrentUser());
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
@@ -172,6 +180,7 @@ export default function App() {
             onUpdateInvoices={loadData}
             onOpenPublicLink={(hash) => setActivePublicHash(hash)}
             onOpenAddSession={handleOpenAddSession}
+            onOpenAccountManagement={() => setIsAccountManagementOpen(true)}
           />
         ) : currentRole === 'teacher' ? (
           /* TEACHER VIEW */
@@ -252,11 +261,3 @@ export default function App() {
     </div>
   );
 }
-
-const INITIAL_BANK_CONFIG_FALLBACK: BankConfig = {
-  bankId: 'MB',
-  bankName: 'MBBank',
-  accountNo: '0388999888',
-  accountName: 'MS. VY ENGLISH - MS VY',
-  centerLogoUrl: '/logo.jpg',
-};
